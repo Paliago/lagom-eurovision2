@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "npm-run-all --parallel dev:frontend dev:backend",
-    "dev:frontend": "vite --open",
-    "dev:backend": "convex dev",
-    "predev": "convex dev --until-success && convex dashboard",
     "build": "tsc -b && vite build",
+    "dev": "npm-run-all --parallel dev:frontend dev:backend",
+    "dev:backend": "convex dev",
+    "dev:frontend": "vite --open",
     "lint": "tsc && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "predev": "convex dev --until-success && convex dashboard",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -24,11 +24,13 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.6.0",
+    "sst": "3.14.16",
     "tailwind-merge": "^3.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@tailwindcss/vite": "^4.1.6",
+    "@types/aws-lambda": "8.10.149",
     "@types/node": "^22.15.17",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
