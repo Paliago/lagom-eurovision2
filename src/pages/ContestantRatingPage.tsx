@@ -67,6 +67,13 @@ const ContestantRatingPage: React.FC = () => {
     storedRoomId ? { roomId: storedRoomId } : "skip",
   );
 
+  const currentUserRatingData = useQuery(
+    api.ratings.getUserRatingForContestant,
+    storedRoomId && contestantId && userId
+      ? { roomId: storedRoomId, contestantId: contestantId, userId: userId }
+      : "skip",
+  );
+
   const roomAverages = useMemo(() => {
     if (!roomRatingsForContestant) {
       return {
@@ -250,21 +257,16 @@ const ContestantRatingPage: React.FC = () => {
   );
 
   useEffect(() => {
-    if (roomRatingsForContestant && userId) {
-      const currentUserRating = roomRatingsForContestant.find(
-        (r) => r.userId === userId,
-      );
-      if (currentUserRating) {
-        setMusicScore(currentUserRating.musicScore ?? "");
-        setPerformanceScore(currentUserRating.performanceScore ?? "");
-        setVibesScore(currentUserRating.vibesScore ?? "");
-      } else {
-        setMusicScore("");
-        setPerformanceScore("");
-        setVibesScore("");
-      }
+    if (currentUserRatingData) {
+      setMusicScore(currentUserRatingData.musicScore ?? "");
+      setPerformanceScore(currentUserRatingData.performanceScore ?? "");
+      setVibesScore(currentUserRatingData.vibesScore ?? "");
+    } else if (userId && storedRoomId && contestantId) {
+      setMusicScore("");
+      setPerformanceScore("");
+      setVibesScore("");
     }
-  }, [roomRatingsForContestant, userId]);
+  }, [currentUserRatingData, userId, storedRoomId, contestantId]);
 
   const currentUserTotal = (() => {
     const scores = [musicScore, performanceScore, vibesScore];

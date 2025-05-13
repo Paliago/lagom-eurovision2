@@ -14,11 +14,18 @@ export const joinOrCreateRoom = mutation({
 			.unique();
 
 		if (existingRoom) {
-			const userExists = existingRoom.users.some(
-				(user) => user.userId === args.userId,
-			);
+			let userFound = false;
+			const updatedUsers = existingRoom.users.map((user) => {
+				if (user.userId === args.userId) {
+					userFound = true;
+					return { ...user, nickname: args.nickname };
+				}
+				return user;
+			});
 
-			if (!userExists) {
+			if (userFound) {
+				await ctx.db.patch(existingRoom._id, { users: updatedUsers });
+			} else {
 				await ctx.db.patch(existingRoom._id, {
 					users: [
 						...existingRoom.users,
@@ -26,6 +33,7 @@ export const joinOrCreateRoom = mutation({
 					],
 				});
 			}
+
 			return {
 				roomId: existingRoom._id,
 				isNewRoom: false,
@@ -49,5 +57,26 @@ export const getRoomUsers = query({
 			return [];
 		}
 		return room.users;
+	},
+});
+
+export const findUserInRoomByNickname = query({
+	args: {
+		roomName: v.string(),
+		nickname: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const room = await ctx.db
+			.query("rooms")
+			.withIndex("by_name", (q) => q.eq("name", args.roomName))
+			.unique();
+
+		if (room) {
+			const user = room.users.find((u) => u.nickname === args.nickname);
+			if (user) {
+				return { userId: user.userId, roomId: room._id };
+			}
+		}
+		return null;
 	},
 });

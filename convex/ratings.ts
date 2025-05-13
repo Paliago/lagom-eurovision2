@@ -89,6 +89,25 @@ export const getRatingsForRoomAndContestant = query({
 	},
 });
 
+export const getUserRatingForContestant = query({
+	args: {
+		roomId: v.id("rooms"),
+		contestantId: v.string(),
+		userId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("ratings")
+			.withIndex("by_roomId_contestantId_userId", (q) =>
+				q
+					.eq("roomId", args.roomId)
+					.eq("contestantId", args.contestantId)
+					.eq("userId", args.userId),
+			)
+			.unique();
+	},
+});
+
 /**
  * Query to fetch all ratings for a room and aggregate them per contestant.
  * Calculates average scores for music, performance, vibes, and an overall total average.

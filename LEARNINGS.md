@@ -26,6 +26,7 @@ This document records key architectural decisions, tool configurations, common p
     - `submitRating`: Upserts a user's rating for a contestant category.
     - `getRatingsForRoomAndContestant`: Fetches all ratings for a specific contestant in a room.
     - `getOverviewRatingsForRoom`: Fetches all ratings for a room and aggregates them per contestant (calculates averages).
+    - `getUserRatingForContestant`: Fetches a specific user's rating (if any) for a contestant in a room. Used to populate user's own score inputs.
 - **ID Fields**: Use `v.id("tableName")` for schema fields that reference IDs from other tables. Client-side, these IDs are typically strings, which Convex handles correctly if they are valid `Id` representations.
 - **ESLint & Convex Files**: An ESLint parsing error has been noted for files in the `convex/` directory, related to `tsconfig.json` project inclusion. This may require running `npx convex dev` (which has been done) or specific ESLint configuration updates. This should be re-checked. The user has accepted that this is an ongoing issue for now.
 
@@ -50,9 +51,10 @@ This document records key architectural decisions, tool configurations, common p
     - Retrieves `roomName`, `contestantId` from URL; `userId`, `storedRoomId`, `nickname` from `localStorage`.
     - Uses mock data functions for contestant details.
     - Allows user to input ratings (Music, Performance, Vibes), calls `submitRating` Convex mutation on change.
-    - Uses `useQuery` with `api.ratings.getRatingsForRoomAndContestant` to fetch other users' ratings.
+    - Uses `useQuery` with `api.ratings.getUserRatingForContestant` to fetch the current user's own ratings for the displayed contestant.
+    - Uses `useQuery` with `api.ratings.getRatingsForRoomAndContestant` to fetch other users' ratings for calculating room averages.
     - Calculates and displays average ratings from others using `useMemo`.
-    - `useEffect` pre-fills current user's scores if available from fetched data.
+    - `useEffect` pre-fills current user's scores using data from `api.ratings.getUserRatingForContestant`.
     - `useEffect` with `[contestantId]` dependency clears scores on contestant navigation.
     - Provides navigation to Previous/Next contestant and Back to List.
     - Styled with Tailwind CSS using a two-card layout for ratings and styled inputs/buttons.
@@ -94,3 +96,9 @@ This document records key architectural decisions, tool configurations, common p
 
 - **Match Query Return Structure to Client Expectation**: Ensure that what a Convex query returns (especially aggregate queries vs. lists of raw documents) matches what the client-side code (`useQuery` hook consumers) expects. A mismatch here can lead to client-side calculations being performed on incorrectly structured data or trying to iterate over a single aggregate object.
 - **`returns` Validators are Crucial**: Always define a `returns` validator for every Convex query and mutation. This provides type safety, enables better type inference in the client, and helps catch mismatches between backend and frontend data structures early. Without it, `useQuery` might infer `any` or `unknown`, leading to type assertions and potential runtime errors. When a query returns aggregated data, the `returns` validator should describe that aggregate object, not the individual documents that were aggregated.
+
+## Bug Fixes & Refinements
+
+- **Incorrect User Data Display on Joining Empty Room**: Resolved an issue where a new user joining an existing, but currently empty, room might see the creator's ID and ratings in their input fields. This was fixed by:
+  - Adding a new Convex query `getUserRatingForContestant` that fetches ratings specifically for the current `userId`, `roomId`, and `contestantId`.
+  - Updating `ContestantRatingPage.tsx` to use this dedicated query for populating the user's score input fields, ensuring only their own data (or empty fields if no prior rating) is displayed.

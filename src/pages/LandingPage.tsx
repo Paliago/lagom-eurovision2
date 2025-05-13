@@ -1,6 +1,6 @@
 import type React from "react";
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ const LandingPage: React.FC = () => {
   const [roomName, setRoomName] = useState("");
   const [nickname, setNickname] = useState("");
   const navigate = useNavigate();
+  const client = useConvex();
   const joinOrCreateRoomMutation = useMutation(api.rooms.joinOrCreateRoom);
 
   const handleJoinOrCreateRoom = async () => {
@@ -31,17 +32,29 @@ const LandingPage: React.FC = () => {
       return;
     }
     try {
-      const tempUserId =
-        localStorage.getItem("eurovisionUserId") || generateTemporaryUserId();
+      let resolvedUserId: string;
+
+      // Try to find user by nickname in the room
+      const existingUserData = await client.query(
+        api.rooms.findUserInRoomByNickname,
+        { roomName, nickname },
+      );
+
+      if (existingUserData) {
+        resolvedUserId = existingUserData.userId;
+      } else {
+        resolvedUserId = generateTemporaryUserId();
+      }
 
       const result = await joinOrCreateRoomMutation({
         roomName,
         nickname,
-        userId: tempUserId,
+        userId: resolvedUserId,
       });
       console.log("Room joined/created:", result);
-      localStorage.setItem("eurovisionUserId", tempUserId);
+      localStorage.setItem("eurovisionUserId", resolvedUserId);
       localStorage.setItem("eurovisionNickname", nickname);
+      // Use the roomId from the mutation result as it's the most definitive
       if (result.roomId) {
         localStorage.setItem("eurovisionRoomId", result.roomId.toString());
         void navigate(`/room/${roomName}/contestants`);
